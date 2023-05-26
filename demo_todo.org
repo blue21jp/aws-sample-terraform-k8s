@@ -1,0 +1,105 @@
+#+title: Terraform Demo
+
+* NOTE
+
+DockerDesktop(k8s)+Localstackを使って
+argocd, dashboardを動かすDEMO環境をterraformで作ります。
+動作確認後、お掃除して終わります。
+
+* DEMO
+
+** TODO 作業開始
+** TODO 作業環境の確認
+作業する準備が完了しているかチェック
+
+- [ ] /etc/hosts 設定
+- [ ] localstack 起動確認
+      awsp,awsa
+- [ ] k8s(docker desktop)起動確認
+      kubectl config current-context
+      kubectl get pods -A
+- [ ] terraform確認
+      make plan -C stacks_k8s/00_check
+
+** TODO 構築 [0/7]
+下記TODOのmakeを自動実行
+make apply OPT="-auto-approve" -C stacks_k8s
+
+*** TODO Localstack: SSM作成
+localstackのSSMパラメータにbitbucketのssh秘密鍵登録
+
+- [ ] ssm parameter 登録
+      make apply -C stacks_k8s/01_aws_ssm
+- [ ] 確認
+      lsssm
+
+*** TODO DockerDesctop(k8s): eso インストール
+k8sにesoをhelmインストール
+
+- [ ] install
+      make apply -C stacks_k8s/10_k8s_eso
+- [ ] 確認. secretstore-ssmのstatusがvalidならOK
+      kubectl get clustersecretstores -A
+
+*** TODO DockerDesctop(k8s): ingress nginx インストール
+k8sにingressをhelmインストール
+
+- [ ] install
+      make apply -C stacks_k8s/10_k8s_ingress_nginx
+- [ ] 確認
+      kubectl get svc -A
+
+*** TODO DockerDesctop(k8s): metric server インストール
+k8sにmetric serverをhelmインストール
+
+- [ ] install
+      make apply -C stacks_k8s/10_k8s_metric_server
+- [ ] 確認
+      kubectl get svc -A
+
+*** TODO DockerDesctop(k8s): argocd インストール
+k8sにargocdをhelmインストール
+
+- [ ] install
+      make apply -C stacks_k8s/20_k8s_argocd
+- [ ] 確認
+      kubectl get svc -A
+- [ ] GUIの初期password
+      kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
+- [ ] GUIログイン
+      http://argocd.example.local
+- [ ] GUI確認. repositoryがsuccesssならOK
+
+*** TODO DockerDesctop(k8s): dashbord インストール
+k8sにdashboardをhelmインストール
+
+- [ ] install
+      make apply -C 20_stacks_k8s/k8s_dashboard
+- [ ] 確認
+      kubectl get svc -A
+- [ ] GUI確認. 認証なし
+      http://dashboard.example.local
+
+*** TODO DockerDesctop(k8s): app デプロイ
+argocdにapplicationを登録
+
+- [ ] deploy
+      make apply -C stacks_k8s/40_k8s_app_argocd
+- [ ] argocd GUI確認
+      http://argocd.example.local
+- [ ] dashboard GUI確認
+      http://dashboard.example.local
+- [ ] web
+      http://nginx.example.local
+
+** TODO 掃除
+上記で作成したリソースを全部破棄してterraform環境初期化
+
+- [ ] destroy
+      kubectl delete deploy nginx-deploy
+      make destroy OPT="-auto-approve" -C stacks_k8s
+      kubectl get pods -A
+- [ ] clean
+      make clean -C stacks_k8s
+
+** TODO 作業終了
